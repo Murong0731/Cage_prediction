@@ -1,0 +1,44 @@
+# Chapter 4.3 — LSTM time-series mooring force prediction
+# Direct LSTM: input = motion history + force history → predict future force
+
+data:
+  data_path: "data/raw/t_2_11.2_50.csv"
+  input_features: ["Heave", "Surge", "Pitch"]    # motion variables (will be prepended to target)
+  target: "Force1"                                  # one of: Force1, Force2
+  feature_range: [-1.0, 1.0]
+  look_back: 55                                     # input time steps (original: 55)
+  output_steps: 1                                   # prediction horizon
+  skip_rows: 345                                    # leading rows to skip
+  train_start: 6900                                 # training start (7500-6900=600 samples)
+  train_end: 7500                                   # training end (= validation start)
+  valid_end: 12000                                  # validation end
+
+model:
+  name: "lstm"                                      # model type
+  num_layers: 3                                     # 3-layer LSTM (original 4.3)
+  units: [25, 100, 100]
+  dropout: 0.3
+  activation: "tanh"
+
+training:
+  epochs: 30                                        # original: 30
+  batch_size: 50                                    # original: 50
+  learning_rate: 0.01
+  optimizer: "adam"
+  loss: "mse"
+  shuffle: false
+  random_seed: 42
+
+output:
+  output_dir: "results/s4/lstm_mooring"
+  save_predictions: true
+  save_figures: true
+
+smoke_test:
+  data:
+    train_start: 7400                               # 100 training samples
+    valid_end: 8000                                 # ~500 validation samples
+    skip_rows: 345
+  training:
+    epochs: 2
+    batch_size: 16

@@ -1,0 +1,39 @@
+data:
+  data_path: data/raw/t_2_11.2_50.csv
+  feature_range:
+  - -1.0
+  - 1.0
+  input_features:
+  - Surge
+  - Heave
+  - Pitch
+  target: Force1
+  train_end: 30000
+  train_start: 20000
+  valid_end: 31000
+model:
+  bpnn_activation: tanh
+  bpnn_units:
+  - 150
+  - 150
+  - 150
+  name: hgbdt
+output:
+  output_dir: results/s4
+  save_figures: true
+  save_predictions: true
+smoke_test:
+  data:
+    train_end: 20100
+    train_start: 20000
+    valid_end: 20300
+  training:
+    batch_size: 32
+    epochs: 2
+training:
+  batch_size: 256
+  epochs: 1000
+  learning_rate: 0.01
+  loss: mse
+  optimizer: adam
+  random_seed: 42

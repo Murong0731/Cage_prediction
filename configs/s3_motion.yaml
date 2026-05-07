@@ -1,0 +1,44 @@
+data:
+  data_path: data/raw/t_1.csv
+  feature_range:
+  - -1.0
+  - 1.0
+  input_features:
+  - H
+  look_back: 55
+  output_steps: 1
+  skip_rows: 345
+  target: Pitch
+  train_size: 7500
+  train_start: 0
+  valid_size: 10500
+model:
+  activation: tanh
+  dropout: 0.3
+  name: lstm
+  num_layers: 3
+  units:
+  - 25
+  - 100
+  - 100
+output:
+  output_dir: results/s3
+  save_figures: true
+  save_model: false
+  save_predictions: true
+smoke_test:
+  data:
+    skip_rows: 0
+    train_size: 100
+    valid_size: 500
+  training:
+    batch_size: 16
+    epochs: 2
+training:
+  batch_size: 50
+  epochs: 60
+  learning_rate: 0.01
+  loss: mse
+  optimizer: adam
+  random_seed: 42
+  shuffle: false

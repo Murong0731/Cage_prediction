@@ -1,4 +1,48 @@
+# Jupyter
 .ipynb_checkpoints/
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Test cache
+.pytest_cache/
+
+# Results (large output files, tracked separately)
+results/*.csv
+results/**/*.csv
+results/*.png
+results/**/*.png
+
+# Data (tracked separately)
+data/processed/
+
+# Model checkpoints
+*.h5
+*.keras
+*.ckpt
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
 .vscode/
+
+# Thesis PDF (large binary)
+*.pdf
+
+# Claude Code
+.claude/
