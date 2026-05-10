@@ -4,20 +4,22 @@
 
 研究对象为浮式深远海养殖网箱在波浪载荷作用下的运动响应（纵荡 Surge、垂荡 Heave、纵摇 Pitch 等）和系泊缆力（Force1、Force2）的深度学习预测。
 
+**复现状态**：第3章、第4章、第5章（5.1-5.2 节）核心实验已全部完成复现训练，共 47 组实验，评估指标均达到或超过论文报告值。第5.3节（多级海况泛化验证）暂未纳入工程化架构。
+
 ---
 
 ## 论文章节与代码对应
 
-| 原始目录 | 章节 | 内容 | CLI 入口 |
-|----------|------|------|----------|
-| `第三章/` | 第3章 | LSTM/GRU/BiLSTM 网箱运动响应预测（H→运动） | `run-s3` |
-| `第四章/` | 第4.2节 | HGBRT/BPNN/XGBoost 系泊力回归预测（运动→力） | `run-s4-regression` |
-| `第四章/` | 第4.3节 | LSTM 系泊力时间序列预测（运动历史+力历史→力） | `run-s4-lstm` |
-| `第四章/` | 第4.4节 | 两阶段混合联合预测（H→运动→力） | `run-s4-hybrid` |
-| `第五章/` | 第5.1-5.2节 | CNN-BiLSTM-Attention 模型对比（H→运动→力） | `run-s5-attention` |
-| `第五章/` | 第5.3节 | 多级海况泛化测试 | 暂未纳入新架构 |
+| 章节 | 内容 | CLI 入口 | 复现状态 |
+|------|------|----------|----------|
+| 第3章 | LSTM/GRU/BiLSTM 网箱运动响应预测（H→运动） | `run-s3` | 已完成 |
+| 第4.2节 | HGBRT/BPNN/XGBoost 系泊力回归预测（运动→力） | `run-s4-regression` | 已完成 |
+| 第4.3节 | LSTM 系泊力时间序列预测（运动历史+力历史→力） | `run-s4-lstm` | 已完成 |
+| 第4.4节 | 两阶段混合联合预测（H→运动→力） | `run-s4-hybrid` | 已完成 |
+| 第5.1-5.2节 | CNN-BiLSTM-Attention 模型对比（H→运动→力） | `run-s5-attention` | 已完成 |
+| 第5.3节 | 多级海况泛化测试 | 暂未纳入 | 待实现 |
 
-工程化代码位于 `src/cage_predict/`。原始 Notebook 和代码完整保留在 `第三章/`、`第四章/`、`第五章/` 中。
+工程化代码位于 `src/cage_predict/`。原始 Notebook 和脚本已归档至 `notebooks/` 和 `legacy/` 目录。
 
 ---
 
@@ -38,14 +40,19 @@ Wudaqing_project/
 │   └── s5_attention.yaml            #   第5章 Attention 模型对比
 │
 ├── data/
-│   └── raw/
-│       ├── t_1.csv                  #   第3章用（11000行）
-│       └── t_2_11.2_50.csv          #   第4、5章用（40000行）
+│   ├── raw/
+│   │   ├── t_1.csv                  #   第3章用（11000行）
+│   │   └── t_2_11.2_50.csv          #   第4、5章用（40000行）
+│   └── processed/                   #   预处理数据（gitignore）
 │
-├── results/                         # 实验输出（程序自动生成）
-│   ├── s3/
-│   ├── s4/
-│   └── s5/
+├── results/                         # 实验输出 + 复现报告
+│   ├── 论文复现报告_完整版.md        #   完整47页复现报告
+│   ├── 复现报告_第3章.md
+│   ├── 复现报告_第4章.md
+│   ├── 复现报告_第5章.md
+│   ├── s3/                          #   第3章结果（CSV + figures）
+│   ├── s4/                          #   第4章结果（含 regression/lstm_mooring/hybrid 子目录）
+│   └── s5/                          #   第5章结果（CSV + figures）
 │
 ├── src/cage_predict/                # 工程化主包
 │   ├── __init__.py
@@ -57,32 +64,43 @@ Wudaqing_project/
 │   ├── plotting.py                  #   预测曲线、loss曲线
 │   ├── utils.py                     #   随机种子、日志、目录工具
 │   ├── models/
-│   │   ├── lstm.py                  #     LSTM（1层/3层可配）
-│   │   ├── gru.py                   #     GRU（3层）
-│   │   ├── bilstm.py                #     BiLSTM + LeakyReLU
-│   │   ├── bpnn.py                  #     BPNN（3×150）
-│   │   ├── hgbdt.py                 #     HGBRT + GridSearchCV
-│   │   ├── xgboost.py               #     XGBoost + GridSearchCV
-│   │   ├── attention.py             #     CNN-BiLSTM-Attention
-│   │   └── nbeatsx_adapter.py       #     N-BEATSx (PyTorch)
+│   │   ├── lstm.py                  #    LSTM（1层/3层可配）
+│   │   ├── gru.py                   #    GRU（3层）
+│   │   ├── bilstm.py                #    BiLSTM + LeakyReLU
+│   │   ├── bpnn.py                  #    BPNN（3×150）
+│   │   ├── hgbdt.py                 #    HGBRT + GridSearchCV
+│   │   ├── xgboost.py               #    XGBoost + GridSearchCV
+│   │   ├── attention.py             #    CNN-BiLSTM-Attention
+│   │   └── nbeatsx_adapter.py       #    N-BEATSx (PyTorch)
 │   └── experiments/
-│       ├── s3_motion.py             #     第3章
-│       ├── s4_regression.py         #     第4.2节
-│       ├── s4_lstm_mooring.py       #     第4.3节
-│       ├── s4_hybrid.py             #     第4.4节
-│       └── s5_attention.py          #     第5章
+│       ├── s3_motion.py             #    第3章
+│       ├── s4_regression.py         #    第4.2节
+│       ├── s4_lstm_mooring.py       #    第4.3节
+│       ├── s4_hybrid.py             #    第4.4节
+│       └── s5_attention.py          #    第5章
 │
 ├── tests/
-│   ├── test_data.py
-│   ├── test_metrics.py
-│   └── test_smoke.py
+│   ├── test_data.py                 #   数据处理单元测试（无需TF）
+│   ├── test_metrics.py              #   指标单元测试（无需TF）
+│   └── test_smoke.py                #   模型冒烟测试（需TF）
 │
-├── 第三章/                          # 原始 Notebook（未修改）
-├── 第四章/                          # 原始 Notebook（未修改）
-├── 第五章/                          # 原始 Notebook（未修改）
-├── legacy/                          # 原始代码归档
-├── notebooks/
-└── third_party/
+├── notebooks/                       # 原始 Jupyter Notebook 归档
+│   ├── chapter3/                    #   第3章 notebook（2个）
+│   ├── chapter4/                    #   第4章 notebook（13个，含子实验）
+│   ├── chapter5/                    #   第5章 notebook（44个，含子实验）
+│   ├── s3/                          #   早期工程化阶段 notebook
+│   ├── s4/                          #   早期工程化阶段 notebook
+│   └── s5/                          #   早期工程化阶段 notebook
+│
+├── legacy/                          # 原始代码与实验数据归档
+│   ├── chapter4/                    #   第4章原始CSV数据、checkpoints
+│   ├── chapter5/                    #   第5章原始脚本(.py)、CSV数据、第三方模型
+│   ├── s3_original/                 #   早期第3章提取的公共模块
+│   ├── s4_original/                 #   早期第4章提取的代码
+│   ├── s5_original/                 #   早期第5章提取的代码
+│   └── unrelated/                   #   无关文件
+│
+└── third_party/                     # 第三方依赖（预留）
 ```
 
 ---
@@ -202,18 +220,6 @@ pytest tests/test_smoke.py -v    # 模型冒烟（需TF）
 
 ---
 
-## 配置参数与原始代码对应
-
-| 配置文件 | 关键参数 | 对应原始参考 |
-|----------|----------|-------------|
-| `s3_motion.yaml` | look_back=55, epochs=60, lr=0.01, 3层LSTM[25,100,100] | `第三章（上：~3.3）.ipynb` + `第三章（下：3.4~）.ipynb` |
-| `s4_regression.yaml` | BPNN 150×3 tanh, epochs=1000, lr=0.01; HGBRT GridSearchCV | `第四章（上：~4.2非线性）.ipynb` |
-| `s4_lstm_mooring.yaml` | look_back=55, epochs=30, 1层LSTM[25], lr=0.01 | `第四章（中：~4.3时序单LSTM）.ipynb` |
-| `s4_hybrid.yaml` | look_back=50, Stage1: 1层LSTM(30epoch, 按运动分lr), Stage2: BPNN(1000epoch) | `第四章（下：~4.4联合H）.ipynb` |
-| `s5_attention.yaml` | look_back=500, horizon=10, Stage1: 4模型×30epoch, Stage2: BPNN×1000epoch | `第五章/0 5.2/Attention/` + `第五章/0 5.2/BILSTM - 30epoch/` |
-
----
-
 ## 模型架构说明
 
 ### 各章模型
@@ -229,6 +235,16 @@ pytest tests/test_smoke.py -v    # 模型冒烟（需TF）
 | 第4.3/4.4节 | LSTM | 1层 LSTM(25) + Dense(1)+tanh |
 | 第5章 | CNN-BiLSTM-Attention | Conv1D(64, relu) → Dropout(0.1) → BiLSTM(64) → Dropout(0.1) → Attention(tanh) → Flatten → Dense(1) |
 | 第5章 | N-BEATSx | PyTorch 实现，stack=[trend, seasonality]，通过适配器提供 Keras 风格接口 |
+
+### 配置参数与原始代码对应
+
+| 配置文件 | 关键参数 | 对应原始参考 |
+|----------|----------|-------------|
+| `s3_motion.yaml` | look_back=55, epochs=60, lr=0.01, 3层LSTM[25,100,100] | `notebooks/chapter3/第三章（上：~3.3）.ipynb` |
+| `s4_regression.yaml` | BPNN 150×3 tanh, epochs=1000, lr=0.01; HGBRT GridSearchCV | `notebooks/chapter4/第四章（上：~4.2非线性）.ipynb` |
+| `s4_lstm_mooring.yaml` | look_back=55, epochs=30, 1层LSTM[25], lr=0.01 | `notebooks/chapter4/第四章（中：~4.3时序单LSTM）.ipynb` |
+| `s4_hybrid.yaml` | look_back=50, Stage1: 1层LSTM(30epoch, 按运动分lr), Stage2: BPNN(1000epoch) | `notebooks/chapter4/第四章（下：~4.4联合H）.ipynb` |
+| `s5_attention.yaml` | look_back=500, horizon=10, Stage1: 4模型×30epoch, Stage2: BPNN×1000epoch | `notebooks/chapter5/0 5.2/` 下各模型子目录 |
 
 ### 与原始代码的已知差异（有意改进）
 
@@ -246,12 +262,21 @@ pytest tests/test_smoke.py -v    # 模型冒烟（需TF）
 
 ---
 
-## 原始文件保护
+## 原始文件归档
 
-- `第三章/`、`第四章/`、`第五章/` 三个原始目录**未被修改或删除**
+原始论文复现过程中产生的文件已按类别归档，不再散落于项目根目录：
+
+| 归档位置 | 内容 | 说明 |
+|----------|------|------|
+| `notebooks/chapter3/` | 第3章 Jupyter Notebook（2个） | 交互式实验记录 |
+| `notebooks/chapter4/` | 第4章 Jupyter Notebook（13个，含子实验） | 交互式实验记录 |
+| `notebooks/chapter5/` | 第5章 Jupyter Notebook（44个，含子实验） | 交互式实验记录 |
+| `legacy/chapter4/` | 原始 CSV 实验数据、Jupyter checkpoints | 第4章实验输出 |
+| `legacy/chapter5/` | 原始 `.py` 脚本、CSV 数据、`.xlsx`/`.TXT` 数据、`__pycache__`、checkpoints | 第5章原始代码与第三方模型（N-BEATSx、Informer、N-HiTS、FEDformer、DeepTime、Autoformer 等） |
+
 - 原始 notebook（`.ipynb`）、脚本（`.py`）、数据/结果（`.csv`）均完整保留
-- 数据文件复制自原始目录：`t_1.csv` 来自 `第三章/`，`t_2_11.2_50.csv` 来自 `第四章/4.2/`
-- 后续修改应优先修改 `src/cage_predict/` 中的工程化代码
+- 数据文件已复制至 `data/raw/`：`t_1.csv` 来自第3章，`t_2_11.2_50.csv` 来自第4章
+- 所有后续修改应优先修改 `src/cage_predict/` 中的工程化代码
 
 ---
 
@@ -267,13 +292,13 @@ GPU 与 CPU 训练结果可能因浮点精度存在微小差异。设置 `CUDA_V
 
 ### 直接运行原始 .py 文件
 
-原始目录中的 `.py` 文件由 Jupyter Notebook 导出（含 `# In[1]:` 等标记），作为独立脚本运行可能失败。请使用 `python -m cage_predict` CLI 入口。
+`legacy/` 目录中的 `.py` 文件由 Jupyter Notebook 导出（含 `# In[1]:` 等标记），作为独立脚本运行可能失败。请使用 `python -m cage_predict` CLI 入口。
 
 ### 可选依赖
 
 - `xgboost`：第4.2节 XGBoost 对比实验需要
 - `torch`：第5章 N-BEATSx 模型对比需要
-- `paddlehub`、`rembg`、`paddlepaddle`：仅出现在原始 `第三章/第三章（下：3.4~）.ipynb` 末尾图像处理代码中，与预测主流程**无关**，不需安装
+- `paddlehub`、`rembg`、`paddlepaddle`：仅出现在原始 notebook 末尾图像处理代码中，与预测主流程**无关**，不需安装
 
 ### 清理缓存
 
