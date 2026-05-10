@@ -62,9 +62,9 @@ def _build_stage1_model(name: str, s1_cfg: dict, input_shape: tuple[int, int], l
         from ..models.lstm import build_lstm_model
         return build_lstm_model(
             input_shape=input_shape,
-            num_layers=s1_cfg.get("lstm_num_layers", 3),
-            units=s1_cfg.get("lstm_units", [25, 100, 100]),
-            dropout=s1_cfg.get("lstm_dropout", 0.3),
+            num_layers=s1_cfg.get("lstm_num_layers", 1),
+            units=s1_cfg.get("lstm_units", [25]),
+            dropout=s1_cfg.get("lstm_dropout", 0.0),
             activation=s1_cfg.get("lstm_activation", "tanh"),
             learning_rate=lr,
         )
@@ -220,8 +220,7 @@ def run(config_path: str, smoke_test: bool = False) -> None:
             )
 
             # 每个运动分量的学习率不同（原始代码中的经验设定）
-            # 注意：原始 Attention/BiLSTM 使用的高学习率 (Surge=1.3) 不适合 LSTM/GRU
-            # 需要通过 lr_scales 按模型类型缩放
+            # 原始代码对所有模型使用相同的原始学习率（公平对比）
             lr_map = s1_cfg.get("learning_rates", {})
             base_lr = lr_map.get(motion, s1_cfg.get("learning_rate", 0.1))
             lr_scales = s1_cfg.get("lr_scales", {})
@@ -301,7 +300,7 @@ def run(config_path: str, smoke_test: bool = False) -> None:
         if out_cfg.get("save_predictions", True):
             output_dir = Path(out_cfg["output_dir"])
             ensure_dir(output_dir)
-            csv_path = output_dir / f"{mooring_target.lower()}_{model_name}_h{look_back}{suffix}.csv"
+            csv_path = output_dir / f"{mooring_target.lower()}_{model_name}_h{look_back}_hor{horizon}{suffix}.csv"
             save_results_csv(csv_path, fan_real, fan_pred)
             logger.info("  预测结果已保存 → %s", csv_path)
 

@@ -7,7 +7,7 @@ data:
   - Surge
   - Heave
   - Pitch
-  target: Force1
+  target: Force2
   train_end: 30000
   train_start: 20000
   valid_end: 31000
@@ -33,7 +33,7 @@ smoke_test:
 training:
   batch_size: 256
   epochs: 1000
-  learning_rate: 0.01
+  learning_rate: 0.001
   loss: mse
   optimizer: adam
   random_seed: 42

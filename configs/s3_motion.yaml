@@ -5,7 +5,7 @@ data:
   - 1.0
   input_features:
   - H
-  look_back: 55
+  look_back: 50
   output_steps: 1
   skip_rows: 345
   target: Pitch
@@ -15,7 +15,7 @@ data:
 model:
   activation: tanh
   dropout: 0.3
-  name: lstm
+  name: bilstm
   num_layers: 3
   units:
   - 25
@@ -37,7 +37,11 @@ smoke_test:
 training:
   batch_size: 50
   epochs: 60
-  learning_rate: 0.01
+  learning_rate: 0.001
+  learning_rates:
+    Heave: 0.001
+    Pitch: 0.001
+    Surge: 0.001
   loss: mse
   optimizer: adam
   random_seed: 42

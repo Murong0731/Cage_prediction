@@ -114,6 +114,11 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     t_end = train_end
     v_end = valid_end
 
+    # 每个运动分量可能有不同的训练起始索引
+    # （原始代码中 Surge 用 6600 训练，然后 [300:, :] 对齐到 6900）
+    motion_train_starts = s1_cfg.get("motion_train_starts", {})
+    align_start = t_start   # Stage 2 统一对齐的起点
+
     # ── 第1步：第一阶段 —— 为每个运动目标训练 LSTM(H → 运动) ────────
     from ..models.lstm import build_lstm_model
 
@@ -123,13 +128,16 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     for motion in motion_targets:
         logger.info("—— 第一阶段: 训练 %s 的 LSTM ——", motion)
 
+        # 每个运动分量可能有不同的训练起始索引
+        m_start = motion_train_starts.get(motion, t_start)
+
         # 构建该运动的序列数据集：[波浪特征, 运动变量]
         combined = np.hstack([scaled[wave_feat], scaled[motion]])[skip_rows:, :]
         proc = deal_data2(combined, features_number=2, time_steps=look_back)
         mx, my = split_sequence(proc, n_past=look_back)
 
         train_mx, train_my, valid_mx, valid_my = split_train_valid(
-            mx, my, train_start=t_start, train_end=t_end, valid_end=v_end,
+            mx, my, train_start=m_start, train_end=t_end, valid_end=v_end,
         )
 
         # 每个运动分量的学习率不同（原始代码中的经验设定）
@@ -154,11 +162,21 @@ def run(config_path: str, smoke_test: bool = False) -> None:
         )
 
         # 保存预测的运动值（注意：不是真实值！第二阶段用这些预测值作为输入）
-        pretrain_motions[motion] = model.predict(train_mx, verbose=0)
+        pretrain_full = model.predict(train_mx, verbose=0)
         pre_motions[motion] = model.predict(valid_mx, verbose=0)
 
-        logger.info("第一阶段 [%s] 完成: 训练预测=%s 验证预测=%s",
-                    motion, pretrain_motions[motion].shape, pre_motions[motion].shape)
+        # 如果该运动的 train_start 早于对齐起点，需要裁剪前面的预测
+        # （原始代码中 Surge 用 6600 训练，然后 [300:, :] 对齐到 6900）
+        trim = align_start - m_start
+        if trim > 0:
+            pretrain_motions[motion] = pretrain_full[trim:, :]
+            logger.info("第一阶段 [%s] 完成: 训练预测=%s → %s (裁剪前%d行)  验证预测=%s",
+                        motion, pretrain_full.shape, pretrain_motions[motion].shape,
+                        trim, pre_motions[motion].shape)
+        else:
+            pretrain_motions[motion] = pretrain_full
+            logger.info("第一阶段 [%s] 完成: 训练预测=%s  验证预测=%s",
+                        motion, pretrain_motions[motion].shape, pre_motions[motion].shape)
 
     # ── 第2步：第二阶段 —— BPNN(预测的运动 → 力) ──────────────────────
     logger.info("—— 第二阶段: 训练 %s 的 BPNN ——", mooring_target)

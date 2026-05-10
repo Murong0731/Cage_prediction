@@ -175,7 +175,9 @@ def run(config_path: str, smoke_test: bool = False) -> None:
 
     # ── 第5步：构建模型 ────────────────────────────────────────────────────
     input_shape = (train_x.shape[1], train_x.shape[2])
-    model = _build_model({**model_cfg, "learning_rate": train_cfg["learning_rate"]}, input_shape)
+    lr_map = train_cfg.get("learning_rates", {})
+    lr = lr_map.get(target, train_cfg.get("learning_rate", 0.01))
+    model = _build_model({**model_cfg, "learning_rate": lr}, input_shape)
 
     # ── 第6步：训练模型 ────────────────────────────────────────────────────
     # verbose=2: 每个 epoch 输出一行进度（比 verbose=1 的进度条更适合日志）

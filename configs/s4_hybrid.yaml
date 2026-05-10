@@ -1,57 +1,60 @@
-# Chapter 4.4 — Hybrid joint prediction
-# Stage 1: LSTM predicts Heave/Surge/Pitch from wave height H
-# Stage 2: BPNN predicts Force1/Force2 from PREDICTED (not ground-truth) motions
-
 data:
-  data_path: "data/raw/t_2_11.2_50.csv"
-  wave_feature: "H"
-  motion_targets: ["Heave", "Surge", "Pitch"]   # predicted by Stage 1 LSTM
-  mooring_target: "Force2"                        # predicted by Stage 2 NN
-  feature_range: [-1.0, 1.0]
-  look_back: 50                                    # time window size
-  output_steps: 1                                  # prediction horizon
-  skip_rows: 3500                                  # 4.4 uses [3500:, :]
-  train_start: 6900                                # original 4.4: 600 training samples (7500-6900)
-  train_end: 7500                                  # training end (= validation start)
-  valid_end: 12500                                 # original 4.4: 5000 validation samples
-
-# Stage 1: LSTM for motion prediction
-stage1:
-  model: "lstm"
-  num_layers: 1
-  units: [25]
-  dropout: 0.0
-  activation: "tanh"
-  epochs: 30
-  batch_size: 50
-  learning_rate: 0.1                                # fallback for motions not in learning_rates
-  learning_rates:                                    # per-motion lr (original 4.4 values)
-    Heave: 0.1
-    Surge: 1.3
-    Pitch: 0.35
-
-# Stage 2: BPNN for force prediction
-stage2:
-  model: "bpnn"
-  bpnn_units: [150, 150, 150]
-  bpnn_activation: "tanh"
-  epochs: 1000
-  batch_size: 256
-  learning_rate: 0.01
-
+  data_path: data/raw/t_2_11.2_50.csv
+  feature_range:
+  - -1.0
+  - 1.0
+  look_back: 50
+  mooring_target: Force1
+  motion_targets:
+  - Heave
+  - Surge
+  - Pitch
+  output_steps: 1
+  skip_rows: 3500
+  train_end: 7500
+  train_start: 6900
+  valid_end: 12500
+  wave_feature: H
 output:
-  output_dir: "results/s4/hybrid"
-  save_predictions: true
+  output_dir: results/s4/hybrid
   save_figures: true
-
+  save_predictions: true
 smoke_test:
   data:
-    train_start: 7400                                # 100 training samples
     skip_rows: 3500
-    valid_end: 8000                                  # ~500 validation samples
+    train_start: 7400
+    valid_end: 8000
   stage1:
-    epochs: 2
     batch_size: 16
-  stage2:
     epochs: 2
+  stage2:
     batch_size: 32
+    epochs: 2
+stage1:
+  activation: tanh
+  batch_size: 50
+  dropout: 0.0
+  epochs: 60
+  learning_rate: 0.001
+  learning_rates:
+    Heave: 0.001
+    Pitch: 0.01
+    Surge: 0.005
+  model: lstm
+  motion_train_starts:
+    Heave: 6900
+    Pitch: 6900
+    Surge: 6600
+  num_layers: 1
+  units:
+  - 25
+stage2:
+  batch_size: 256
+  bpnn_activation: tanh
+  bpnn_units:
+  - 150
+  - 150
+  - 150
+  epochs: 1000
+  learning_rate: 0.001
+  model: bpnn

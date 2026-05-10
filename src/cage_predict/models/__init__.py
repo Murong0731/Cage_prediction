@@ -15,6 +15,7 @@ from .gru import build_gru_model
 from .bilstm import build_bilstm_model
 from .bpnn import build_bpnn_model
 from .hgbdt import build_and_fit_hgbdt, predict_hgbdt
+from .xgboost import build_and_fit_xgboost, predict_xgboost
 from .attention import build_attention_model
 from .nbeatsx_adapter import build_nbeatsx_model
 
@@ -25,6 +26,8 @@ __all__ = [
     "build_bpnn_model",
     "build_and_fit_hgbdt",
     "predict_hgbdt",
+    "build_and_fit_xgboost",
+    "predict_xgboost",
     "build_attention_model",
     "build_nbeatsx_model",
 ]
