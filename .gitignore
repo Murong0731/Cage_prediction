@@ -1,6 +1,3 @@
-# Jupyter
-.ipynb_checkpoints/
-
 # Python cache
 __pycache__/
 *.pyc
@@ -15,17 +12,11 @@ venv/
 .venv/
 env/
 
-# Test cache
-.pytest_cache/
-
 # Results (large output files, tracked separately)
 results/*.csv
 results/**/*.csv
 results/*.png
 results/**/*.png
-
-# Data (tracked separately)
-data/processed/
 
 # Model checkpoints
 *.h5
@@ -36,13 +27,23 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE
 .idea/
-.vscode/
 
-# Thesis PDF (large binary)
-*.pdf
+# Temp & logs
+*.log
+*.tmp
+~$*
 
-# Claude Code
-.claude/
+# Backup files
+*.bak
+*.backup
+
+# Thesis PDF (large binary) — uncomment to exclude:
+# *.pdf
+
+# Type checking cache
+.mypy_cache/
+.ruff_cache/

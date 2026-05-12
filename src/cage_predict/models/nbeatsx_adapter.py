@@ -12,12 +12,18 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 from typing import Tuple
 
 import numpy as np
-import torch as t
-import torch.nn as nn
-import torch.nn.functional as F
+
+# PyTorch CUDA DLL 可能因驱动不兼容而加载失败 (RTX 5070 compute 12.0)。
+# N-BEATSx 参数量小（~35K），CPU 训练即可满足需求，因此强制排除 GPU 避免导入失败。
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+import torch as t           # noqa: E402
+import torch.nn as nn       # noqa: E402
+import torch.nn.functional as F  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,64 @@
+# Chapter 4.4 — Hybrid joint prediction (output_steps=8)
+# Two-stage: Stage1 LSTM(H→motion) → Stage2 BPNN(motion→force)
+# Predicts both Force1 and Force2 in a single run
+
+data:
+  data_path: data/raw/t_2_11.2_50.csv
+  feature_range: [-1.0, 1.0]
+  look_back: 50
+  output_steps: 8                                     # prediction horizon = 8 steps
+  wave_feature: H
+  motion_targets:
+    - Heave
+    - Surge
+    - Pitch
+  mooring_targets:                                     # both mooring lines
+    - Force1
+    - Force2
+  skip_rows: 3500
+  train_start: 6900
+  train_end: 7500
+  valid_end: 12500
+
+output:
+  output_dir: results/s4/hybrid
+  save_figures: true
+  save_predictions: true
+
+stage1:
+  activation: tanh
+  batch_size: 50
+  dropout: 0.0
+  epochs: 60
+  learning_rate: 0.001
+  learning_rates:
+    Heave: 0.001
+    Pitch: 0.01
+    Surge: 0.005
+  model: lstm
+  motion_train_starts:
+    Heave: 6900
+    Pitch: 6900
+    Surge: 6600
+  num_layers: 1
+  units: [25]
+
+stage2:
+  batch_size: 256
+  bpnn_activation: tanh
+  bpnn_units: [150, 150, 150]
+  epochs: 1000
+  learning_rate: 0.001
+  model: bpnn
+
+smoke_test:
+  data:
+    skip_rows: 3500
+    train_start: 7400
+    valid_end: 8000
+  stage1:
+    batch_size: 16
+    epochs: 2
+  stage2:
+    batch_size: 32
+    epochs: 2

@@ -23,13 +23,13 @@ from pathlib import Path
 
 import numpy as np
 
-from ..config import load_config
+from ..config import load_config, validate_or_raise
 from ..data import (
     apply_minmax_scaler,
     deal_data2,
     inverse_scale,
     load_csv_data,
-    save_results_csv,
+    save_predictions_csv,
     split_sequence,
     split_train_valid,
 )
@@ -64,7 +64,7 @@ def _build_model(model_cfg: dict, input_shape: tuple[int, int]):
     input_shape : (时间步数, 特征数) 输入形状。
     """
     name = model_cfg.get("name", "lstm")
-    lr = model_cfg.get("learning_rate", 0.01)
+    lr = model_cfg.get("learning_rate", 0.001)
 
     if name == "lstm":
         from ..models.lstm import build_lstm_model
@@ -99,7 +99,7 @@ def _build_model(model_cfg: dict, input_shape: tuple[int, int]):
         raise ValueError(f"未知的模型名称: {name}")
 
 
-def run(config_path: str, smoke_test: bool = False) -> None:
+def run(config_path: str, smoke_test: bool = False, output_dir: str | None = None) -> None:
     """运行第3章运动响应预测实验。
 
     实验假设：波浪是网箱运动的主要驱动力，因此只用波高 H 作为输入，
@@ -114,8 +114,10 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     ----------
     config_path : YAML 配置文件的路径。
     smoke_test : 如果为 True，运行快速烟雾测试（减少数据量和训练轮数）。
+    output_dir : 如果提供，覆盖 output.output_dir，用于重定向到临时目录。
     """
-    cfg = load_config(config_path, smoke_test=smoke_test)
+    cfg = load_config(config_path, smoke_test=smoke_test, output_dir_override=output_dir)
+    validate_or_raise(cfg, task_name="s3_motion")
     data_cfg = cfg["data"]
     model_cfg = cfg["model"]
     train_cfg = cfg["training"]
@@ -176,7 +178,15 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     # ── 第5步：构建模型 ────────────────────────────────────────────────────
     input_shape = (train_x.shape[1], train_x.shape[2])
     lr_map = train_cfg.get("learning_rates", {})
-    lr = lr_map.get(target, train_cfg.get("learning_rate", 0.01))
+    lr = lr_map.get(
+        target,
+        train_cfg.get("learning_rate", model_cfg.get("learning_rate", 0.001)),
+    )
+    logger.info("目标=%s 学习率=%.5f (来源: %s)", target, lr,
+                f"training.learning_rates.{target}" if target in lr_map
+                else "training.learning_rate" if "learning_rate" in train_cfg
+                else "model.learning_rate" if "learning_rate" in model_cfg
+                else "default")
     model = _build_model({**model_cfg, "learning_rate": lr}, input_shape)
 
     # ── 第6步：训练模型 ────────────────────────────────────────────────────
@@ -211,7 +221,12 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     if out_cfg.get("save_predictions", True):
         ensure_dir(output_dir)
         csv_path = output_dir / f"{target.lower()}_h{look_back}_{model_cfg['name']}{suffix}.csv"
-        save_results_csv(csv_path, fan_real, fan_pred)
+        save_predictions_csv(
+            csv_path, fan_real, fan_pred,
+            experiment_name="s3_motion",
+            target=target,
+            model_name=model_cfg["name"],
+        )
         logger.info("预测结果已保存 (%d 行) → %s", len(fan_real), csv_path)
 
     if out_cfg.get("save_figures", True):

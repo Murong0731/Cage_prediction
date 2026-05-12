@@ -26,13 +26,13 @@ from pathlib import Path
 
 import numpy as np
 
-from ..config import load_config
+from ..config import load_config, validate_or_raise
 from ..data import (
     apply_minmax_scaler,
     deal_data2,
     inverse_scale,
     load_csv_data,
-    save_results_csv,
+    save_predictions_csv,
     split_sequence,
     split_train_valid,
 )
@@ -117,7 +117,7 @@ def _build_stage1_model(name: str, s1_cfg: dict, input_shape: tuple[int, int], l
         raise ValueError(f"未知的 Stage 1 模型名称: {name}")
 
 
-def run(config_path: str, smoke_test: bool = False) -> None:
+def run(config_path: str, smoke_test: bool = False, output_dir: str | None = None) -> None:
     """运行第5章两阶段联合预测 + 模型比较实验。
 
     实验流程：
@@ -132,8 +132,10 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     ----------
     config_path : YAML 配置文件路径。
     smoke_test : 是否运行烟雾测试。
+    output_dir : 如果提供，覆盖 output.output_dir，用于重定向到临时目录。
     """
-    cfg = load_config(config_path, smoke_test=smoke_test)
+    cfg = load_config(config_path, smoke_test=smoke_test, output_dir_override=output_dir)
+    validate_or_raise(cfg, task_name="s5_attention")
     data_cfg = cfg["data"]
     s1_cfg = cfg["stage1"]
     s2_cfg = cfg["stage2"]
@@ -301,7 +303,12 @@ def run(config_path: str, smoke_test: bool = False) -> None:
             output_dir = Path(out_cfg["output_dir"])
             ensure_dir(output_dir)
             csv_path = output_dir / f"{mooring_target.lower()}_{model_name}_h{look_back}_hor{horizon}{suffix}.csv"
-            save_results_csv(csv_path, fan_real, fan_pred)
+            save_predictions_csv(
+                csv_path, fan_real, fan_pred,
+                experiment_name="s5_attention",
+                target=mooring_target,
+                model_name=model_name,
+            )
             logger.info("  预测结果已保存 → %s", csv_path)
 
         if out_cfg.get("save_figures", True):
@@ -310,12 +317,12 @@ def run(config_path: str, smoke_test: bool = False) -> None:
                 fan_real, fan_pred,
                 title=f"{mooring_target} — {model_name} (horizon={horizon}){suffix}",
                 n_points=min(200, len(fan_real)),
-                save_path=fig_dir / f"{mooring_target.lower()}_{model_name}_prediction{suffix}.png",
+                save_path=fig_dir / f"{mooring_target.lower()}_{model_name}_h{look_back}_hor{horizon}_prediction{suffix}.png",
             )
             plot_loss_curve(
                 history.history["loss"],
                 history.history.get("val_loss"),
-                save_path=fig_dir / f"{mooring_target.lower()}_{model_name}_loss{suffix}.png",
+                save_path=fig_dir / f"{mooring_target.lower()}_{model_name}_h{look_back}_hor{horizon}_loss{suffix}.png",
             )
 
     # ══════════════════════════════════════════════════════════════════════

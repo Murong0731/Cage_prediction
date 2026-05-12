@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(E:/anaconda/envs/predict_w/python.exe -c \"import tensorflow as tf; print\\('GPU:', tf.config.list_physical_devices\\('GPU'\\)\\); print\\('TF version:', tf.__version__\\)\")",
+      "Bash(E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/s5_attention_force2_h20.yaml --smoke-test --output-dir results/s5)",
+      "Bash(E:/anaconda/envs/predict_w/python.exe -c \"import torch; print\\('PyTorch:', torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('CUDA version:', torch.version.cuda if torch.cuda.is_available\\(\\) else 'N/A'\\)\")",
+      "Bash(CUDA_VISIBLE_DEVICES=\"\" KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -c \"import torch; print\\('PyTorch OK, CUDA:', torch.cuda.is_available\\(\\)\\)\")",
+      "Bash(CUDA_VISIBLE_DEVICES=\"\" KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/s5_attention_force2_h20.yaml)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -c \"from src.cage_predict.models.nbeatsx_adapter import build_nbeatsx_model; print\\('N-BEATSx import OK'\\)\")",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/s5_attention_force2_h20.yaml)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -c ' *)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/_tmp_nbeatsx_h20.yaml)",
+      "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/s5_attention_force2_h30.yaml)",
+      "Bash(python -c ' *)",
+      "Bash(CUDA_VISIBLE_DEVICES=\\\\\"\\\\\" KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/_tmp_nbeatsx_h30.yaml)"
+    ]
+  }
+}

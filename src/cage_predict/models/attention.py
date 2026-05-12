@@ -11,10 +11,11 @@
      - 从正反两个方向处理序列，捕捉长期依赖关系
      - 返回完整序列 (return_sequences=True)，供注意力层使用
 
-  3. Attention（注意力机制）：
+  3. Attention（tanh 门控注意力机制）：
      - 自动学习哪些时间步更重要
-     - 通过 Softmax 计算每个时间步的权重
-     - 加权合并所有时间步的信息
+     - 通过 Dense + tanh 为每个时间步计算门控权重（范围 [-1, 1]）
+     - 权重与原始输入逐元素相乘（Multiply），实现信号放大/抑制
+     - 注意：这不是 softmax 概率注意力，而是 tanh 门控加权机制
 
 整体架构：
   Conv1D → Dropout → BiLSTM → Dropout → Attention → Flatten → Dense(1)
@@ -34,26 +35,37 @@ logger = logging.getLogger(__name__)
 
 
 def attention_3d_block2(inputs, single_attention_vector: bool = False):
-    """注意力机制 —— 使用 Permute + Dense + Multiply 实现（推荐版本）。
+    """tanh 门控注意力机制 —— 使用 Permute + Dense(tanh) + Multiply 实现。
 
-    这是注意力机制的一种简洁实现，通过以下步骤计算注意力权重：
+    这不是 softmax 概率注意力，而是一种 tanh 门控加权机制：
+      - 通过 Dense(tanh) 为每个时间步学习一个门控权重（范围 [-1, 1]）
+      - 正权重大于 0 的信号被放大，负权重的信号被抑制/反转
+      - 权重与原始输入逐元素相乘（Multiply），而非加权求和
 
-    步骤：
-      1. Permute((2,1))：交换维度，将 (batch, time, features) 变为 (batch, features, time)
-      2. Dense(time_steps, softmax)：对每个特征在所有时间步上学习注意力得分并归一化
-      3. Permute((2,1))：再交换回来，恢复原始维度顺序
-      4. Multiply：将注意力权重与原始输入逐元素相乘
+    计算步骤：
+      1. Permute((2,1))：将输入从 (batch, time, features) 转置为 (batch, features, time)
+      2. Dense(time_steps, activation="tanh")：对每个特征在所有时间步上学习门控权重，
+         输出形状为 (batch, features, time)，权重值域为 [-1, 1]
+      3. 若 single_attention_vector=True：沿特征维取平均，再复制回原维度
+      4. Permute((2,1))：转置回 (batch, time, features)
+      5. Multiply：将门控权重与原始输入逐元素相乘，得到加权后的序列表示
 
-    这样，重要时间步的信号被放大，不重要时间步的信号被抑制。
-
-    参数
+    Parameters
     ----------
-    inputs : Keras 张量，形状为 (batch_size, time_steps, features)。
-    single_attention_vector : 如果为 True，在所有特征间共享一个注意力向量。
+    inputs : tf.Tensor
+        输入张量，形状为 (batch_size, time_steps, features)。
+    single_attention_vector : bool, optional
+        如果为 True，在所有特征间共享一个注意力向量（默认 False）。
 
-    返回
+    Returns
     -------
-    output : 加权后的 Keras 张量，形状与 inputs 相同。
+    output : tf.Tensor
+        门控加权后的张量，形状与 inputs 相同 (batch_size, time_steps, features)。
+
+    Notes
+    -----
+    本模块用于第5章 CNN-BiLSTM-Attention 模型的注意力层，
+    位于 BiLSTM 之后、Flatten 之前，负责自适应地放大/抑制各时间步的 BiLSTM 隐状态。
     """
     import keras.backend as K
     from keras.layers import (
@@ -96,39 +108,56 @@ def build_attention_model(
     attention_mode: str = "permute",
     learning_rate: float = 0.01,
 ):
-    """构建 CNN-BiLSTM-Attention 模型。
+    """构建 CNN-BiLSTM-(tanh门控)Attention 模型。
 
-    架构流程：
-      输入 (batch, time_steps, features)
-        ↓
-      Conv1D（一维卷积，提取局部特征）
-        ↓
-      Dropout（防止过拟合）
-        ↓
-      BiLSTM（双向LSTM，捕捉长期依赖）
-        ↓
-      Attention（自适应加权各时间步）
-        ↓
-      Flatten（展平为向量）
-        ↓
-      Dense(1)（输出单个预测值）
+    这是第5章（5.1-5.2节）两阶段联合预测中 Stage 1 的核心模型，
+    用于从波浪高度 H 预测浮式网箱的运动分量（Heave / Surge / Pitch）。
 
-    参数
+    架构与张量形状流转：
+      输入层        Input(shape=(T, F))                        # (batch, T, F)
+        ↓
+      Conv1D        Conv1D(filters=64, kernel=1, relu)        # (batch, T, 64)
+        ↓
+      Dropout       Dropout(0.1)                              # (batch, T, 64)
+        ↓
+      BiLSTM        Bidirectional(LSTM(64, tanh, ret_seq=T))  # (batch, T, 128)
+        ↓                                                       (concat: 64*2)
+      Dropout       Dropout(0.1)                              # (batch, T, 128)
+        ↓
+      Attention     attention_3d_block2                       # (batch, T, 128)
+        ↓              └─ tanh 门控加权(逐元素Multiply)
+      Flatten       Flatten()                                 # (batch, T*128)
+        ↓
+      Dense(1)      Dense(1)                                  # (batch, 1)
+
+    Parameters
     ----------
-    input_shape : (时间步数, 输入特征维度)。
-    conv_filters : Conv1D 的卷积核数量，默认 64。更多的核可以提取更多样的特征，
-                   但也增加计算成本。
-    conv_kernel : Conv1D 的卷积核大小，默认 1。
-                  kernel_size=1 表示逐特征点的全连接卷积。
-    lstm_units : BiLSTM 的单元数，默认 64。
-    lstm_activation : LSTM 的激活函数，默认 "tanh"。
-    dropout_rate : Conv1D 后的 Dropout 比例，默认 0.1（10%）。
-    attention_mode : 注意力模式，固定为 "permute"（TF 2.x 兼容）。
-    learning_rate : Adam 优化器的学习率。
+    input_shape : tuple of (int, int)
+        输入形状 (time_steps, features)，即 (T, F)。
+    conv_filters : int, optional
+        Conv1D 的卷积核数量，默认 64。
+    conv_kernel : int, optional
+        Conv1D 的卷积核大小，默认 1（逐特征点全连接卷积）。
+    lstm_units : int, optional
+        BiLSTM 的单元数，默认 64。输出维度 = lstm_units * 2（正反向拼接）。
+    lstm_activation : str, optional
+        LSTM 的激活函数，默认 "tanh"。
+    dropout_rate : float, optional
+        Conv1D 和 BiLSTM 后的 Dropout 比例，默认 0.1。
+    attention_mode : str, optional
+        注意力模式，固定为 "permute"（TF 2.x 兼容）。
+    learning_rate : float, optional
+        Adam 优化器的学习率，默认 0.01。
 
-    返回
+    Returns
     -------
-    model : 编译好的 Keras Model。
+    model : keras.Model
+        编译好的 Keras Model，损失函数为 MSE，优化器为 Adam。
+
+    Notes
+    -----
+    本模型在第5章实验 (s5_attention.py) 中作为 model_compare 的候选模型之一，
+    与 LSTM / GRU / BiLSTM / N-BEATSx 进行对比，验证 Attention 机制的优越性。
     """
     from keras.layers import (
         Bidirectional,

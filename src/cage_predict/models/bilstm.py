@@ -26,7 +26,7 @@ def build_bilstm_model(
     input_shape: tuple[int, int],
     lstm_units: int = 25,
     batch_size: int = 24,
-    learning_rate: float = 0.01,
+    learning_rate: float = 0.001,
 ):
     """构建双向 LSTM 模型（原始论文架构）。
 

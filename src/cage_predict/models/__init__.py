@@ -17,7 +17,13 @@ from .bpnn import build_bpnn_model
 from .hgbdt import build_and_fit_hgbdt, predict_hgbdt
 from .xgboost import build_and_fit_xgboost, predict_xgboost
 from .attention import build_attention_model
-from .nbeatsx_adapter import build_nbeatsx_model
+
+
+def build_nbeatsx_model(*args, **kwargs):
+    """N-BEATSx 模型（懒加载，避免强制依赖 torch）。"""
+    from .nbeatsx_adapter import build_nbeatsx_model as _build
+    return _build(*args, **kwargs)
+
 
 __all__ = [
     "build_lstm_model",

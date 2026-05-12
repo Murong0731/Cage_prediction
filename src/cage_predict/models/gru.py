@@ -24,7 +24,7 @@ def build_gru_model(
     units: list[int] | None = None,
     dropout: float = 0.3,
     activation: str = "tanh",
-    learning_rate: float = 0.01,
+    learning_rate: float = 0.001,
 ):
     """构建与原始代码一致的三层 GRU 模型。
 

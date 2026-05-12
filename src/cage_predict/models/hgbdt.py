@@ -89,8 +89,16 @@ def build_and_fit_hgbdt(
     # GridSearchCV：交叉验证网格搜索
     # scoring="neg_mean_absolute_error"：使用负 MAE 评分（越大越好）
     # n_jobs=-1：使用所有 CPU 核心并行搜索
+    #
+    # TODO: 当前使用默认 KFold（shuffle=False）做 CV 分割。若输入数据存在时间自相关
+    # （如连续时刻的测量值），普通 KFold 可能造成数据泄露。此时应改用 TimeSeriesSplit：
+    #   from sklearn.model_selection import TimeSeriesSplit
+    #   cv=TimeSeriesSplit(n_splits=5)
+    # 上游 s4_regression.py 已按时间索引切分训练/验证集，此处 CV 仅在训练集内部评估，
+    # 对于第 4.2 节的横截面式回归任务（当前时刻运动 → 当前时刻力）影响有限，
+    # 故暂不改动，后续若将 HGBDT 用于纯时间序列预测时再调整。
     grid_search = GridSearchCV(
-        HistGradientBoostingRegressor(),
+        HistGradientBoostingRegressor(random_state=random_state),
         param_grid,
         scoring="neg_mean_absolute_error",  # 负 MAE —— sklearn 中分数越高越好
         n_jobs=-1,                            # 使用所有可用的 CPU 核心

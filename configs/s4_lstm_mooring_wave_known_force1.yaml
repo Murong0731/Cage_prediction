@@ -1,0 +1,46 @@
+# Chapter 4.3 — LSTM time-series mooring force prediction (波浪信息已知版本)
+# Wave-known variant: input features include wave height H alongside motion variables
+# Target: Force1
+
+data:
+  data_path: "data/raw/t_2_11.2_50.csv"
+  input_features: ["H", "Heave", "Surge", "Pitch"]    # H + motion variables
+  target: "Force1"                                      # mooring line 1
+  wave_known: true                                      # ★ 波浪信息已知
+  feature_range: [-1.0, 1.0]
+  look_back: 50                                         # input time steps (paper: 50)
+  output_steps: 1                                       # prediction horizon
+  skip_rows: 3500                                        # leading rows to skip
+  train_start: 6900                                     # training start (7500-6900=600 samples)
+  train_end: 7500                                       # training end (= validation start)
+  valid_end: 12000                                      # validation end
+
+model:
+  name: "lstm"                                          # model type
+  num_layers: 1                                         # 1-layer LSTM
+  units: [25]
+  dropout: 0.0
+  activation: "tanh"
+
+training:
+  epochs: 30                                            # original: 30
+  batch_size: 50                                        # original: 50
+  learning_rate: 0.001
+  optimizer: "adam"
+  loss: "mse"
+  shuffle: false
+  random_seed: 42
+
+output:
+  output_dir: "results/s4/lstm_mooring"
+  save_predictions: true
+  save_figures: true
+
+smoke_test:
+  data:
+    train_start: 7400                                   # 100 training samples
+    valid_end: 8000                                     # ~500 validation samples
+    skip_rows: 3500
+  training:
+    epochs: 2
+    batch_size: 16

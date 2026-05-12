@@ -47,18 +47,124 @@ def load_csv_data(data_path: str | Path) -> pd.DataFrame:
 
 
 def save_results_csv(path: str | Path, real: np.ndarray, predicted: np.ndarray) -> None:
-    """将真实值与预测值保存到 CSV 文件（两列格式）。
+    """将真实值与预测值保存到 CSV 文件（两列带表头格式）。
 
     原始代码中每个章节都使用此模式：
         np.savetxt('xxx.csv', np.hstack((real, pre)), delimiter=',')
 
     第一列为真实值，第二列为预测值，便于后续分析和绘图。
+    现改用 pandas 保存带表头的 CSV，方便论文复现和结果追踪。
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    combined = np.column_stack([real.reshape(-1, 1), predicted.reshape(-1, 1)])
-    np.savetxt(path, combined, delimiter=",")
+    df = pd.DataFrame({
+        "y_true": real.ravel(),
+        "y_pred": predicted.ravel(),
+    })
+    df.to_csv(path, index=False)
     logger.info("结果已保存到 %s", path)
+
+
+def save_predictions_csv(
+    path: str | Path,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    experiment_name: str | None = None,
+    target: str | None = None,
+    model_name: str | None = None,
+    experiment_id: str | None = None,
+) -> pd.DataFrame:
+    """将预测结果保存为带完整表头的 CSV 文件，适用于论文复现和结果追踪。
+
+    保存的列包括：
+      - sample_index : 样本序号（0-based）
+      - y_true       : 真实值（反归一化后的原始量纲）
+      - y_pred       : 预测值
+      - error        : y_pred - y_true（有符号误差）
+      - abs_error    : |y_pred - y_true|（绝对误差）
+      - experiment_name / target / model_name / experiment_id（可选元数据）
+
+    使用 pandas 保存，确保文件可以被任何数据分析工具直接读取。
+
+    参数
+    ----------
+    path : CSV 文件的保存路径。
+    y_true : 真实值数组。
+    y_pred : 预测值数组。
+    experiment_name : 实验名称（如 "s3_motion"、"s5_attention"）。
+    target : 预测目标变量名（如 "Heave"、"Force1"）。
+    model_name : 模型名称（如 "lstm"、"attention"）。
+    experiment_id : 实验标识符（如配置哈希或时间戳），可选。
+
+    返回
+    -------
+    pd.DataFrame : 保存的 DataFrame，方便后续进一步处理。
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    yt = y_true.ravel()
+    yp = y_pred.ravel()
+    err = yp - yt
+    abs_err = np.abs(err)
+
+    df = pd.DataFrame({
+        "sample_index": range(len(yt)),
+        "y_true": yt,
+        "y_pred": yp,
+        "error": err,
+        "abs_error": abs_err,
+    })
+
+    if experiment_name is not None:
+        df["experiment_name"] = experiment_name
+    if target is not None:
+        df["target"] = target
+    if model_name is not None:
+        df["model_name"] = model_name
+    if experiment_id is not None:
+        df["experiment_id"] = experiment_id
+
+    df.to_csv(path, index=False)
+    logger.info("预测结果已保存到 %s (%d 行, %d 列)", path, len(df), df.shape[1])
+    return df
+
+
+def load_predictions_csv(path: str | Path) -> pd.DataFrame:
+    """从 CSV 文件加载预测结果。
+
+    兼容新旧两种格式：
+      - 新格式：带 sample_index / y_true / y_pred 等表头
+      - 旧格式：两列无表头（np.savetxt 风格，自动赋予 y_true / y_pred 列名）
+
+    参数
+    ----------
+    path : CSV 文件的路径。
+
+    返回
+    -------
+    pd.DataFrame : 加载的预测结果。
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"预测结果文件未找到: {path}")
+
+    df = pd.read_csv(path)
+    first_col = str(df.columns[0])
+
+    # 兼容旧的无表头两列格式：如果第一列名不是已知字段，且看起来像数值，
+    # 则说明原始文件没有表头行，需要用 header=None 重新读取
+    if first_col not in {"sample_index", "y_true"}:
+        try:
+            float(first_col)
+            # 第一列名为数值 → 旧格式没有表头，重新读取
+            df = pd.read_csv(path, header=None)
+        except ValueError:
+            pass
+        if df.shape[1] == 2:
+            df.columns = ["y_true", "y_pred"]
+
+    return df
 
 
 def select_features(df: pd.DataFrame, columns: list[str]) -> np.ndarray:

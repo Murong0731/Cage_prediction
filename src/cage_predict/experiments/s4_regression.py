@@ -20,12 +20,12 @@ from pathlib import Path
 
 import numpy as np
 
-from ..config import load_config
+from ..config import load_config, validate_or_raise
 from ..data import (
     apply_minmax_scaler,
     inverse_scale,
     load_csv_data,
-    save_results_csv,
+    save_predictions_csv,
     split_train_valid,
 )
 from ..metrics import evaluate_predictions, print_metrics
@@ -40,7 +40,7 @@ _COLUMN_MAP = {
 }
 
 
-def run(config_path: str, smoke_test: bool = False) -> None:
+def run(config_path: str, smoke_test: bool = False, output_dir: str | None = None) -> None:
     """运行第4.2节回归实验。
 
     实验流程（8步）：
@@ -56,8 +56,10 @@ def run(config_path: str, smoke_test: bool = False) -> None:
     ----------
     config_path : YAML 配置文件路径。
     smoke_test : 是否运行烟雾测试。
+    output_dir : 如果提供，覆盖 output.output_dir，用于重定向到临时目录。
     """
-    cfg = load_config(config_path, smoke_test=smoke_test)
+    cfg = load_config(config_path, smoke_test=smoke_test, output_dir_override=output_dir)
+    validate_or_raise(cfg, task_name="s4_regression")
     data_cfg = cfg["data"]
     model_cfg = cfg["model"]
     train_cfg = cfg["training"]
@@ -181,7 +183,12 @@ def run(config_path: str, smoke_test: bool = False) -> None:
         # 特征名缩写：如 Surge+Pitch+Heave → SPH
         feature_tag = "".join(f[:1] for f in features)
         csv_path = output_dir / f"{target.lower()}_{model_name}_{feature_tag}{suffix}.csv"
-        save_results_csv(csv_path, fan_real, fan_pred)
+        save_predictions_csv(
+            csv_path, fan_real, fan_pred,
+            experiment_name="s4_regression",
+            target=target,
+            model_name=model_name,
+        )
         logger.info("预测结果已保存 (%d 行) → %s", len(fan_real), csv_path)
 
     if out_cfg.get("save_figures", True) and model_name != "hgbdt":

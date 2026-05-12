@@ -27,7 +27,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def _build_adam(learning_rate: float = 0.01):
+def _build_adam(learning_rate: float = 0.001):
     """构建 Adam 优化器，兼容 lr/learning_rate 两种参数名。
 
     Keras 不同版本中 Adam 的学习率参数名不同：
@@ -52,7 +52,7 @@ def build_lstm_model(
     units: list[int] | None = None,
     dropout: float = 0.3,
     activation: str = "tanh",
-    learning_rate: float = 0.01,
+    learning_rate: float = 0.001,
 ):
     """构建与原始论文架构一致的 LSTM 模型。
 
