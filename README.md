@@ -1,4 +1,4 @@
-# CagePredict — 深远海养殖网箱动态响应深度学习预测
+# Cage_prediction — 深远海养殖网箱动态响应深度学习预测
 
 硕士论文《基于深度学习的深远海养殖网箱动态响应预测方法研究》配套代码的工程化整理版本。
 
@@ -25,7 +25,7 @@
 ## 项目结构
 
 ```
-Wudaqing_project/
+Cage_prediction/
 ├── README.md
 ├── pyproject.toml                   # pip install -e . 支持
 ├── requirements.txt                 # 核心依赖 (8 包)

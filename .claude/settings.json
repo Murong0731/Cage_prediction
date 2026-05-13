@@ -12,7 +12,9 @@
       "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/_tmp_nbeatsx_h20.yaml)",
       "Bash(KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/s5_attention_force2_h30.yaml)",
       "Bash(python -c ' *)",
-      "Bash(CUDA_VISIBLE_DEVICES=\\\\\"\\\\\" KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/_tmp_nbeatsx_h30.yaml)"
+      "Bash(CUDA_VISIBLE_DEVICES=\\\\\"\\\\\" KMP_DUPLICATE_LIB_OK=TRUE E:/anaconda/envs/predict_w/python.exe -m cage_predict run-s5-attention --config configs/_tmp_nbeatsx_h30.yaml)",
+      "Read(//f/mycode/**)",
+      "Bash(mv Wudaqing_project Cage_prediction)"
     ]
   }
 }
